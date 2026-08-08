@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        /* Google Fontsの設定 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans JP', 'Poppins', sans-serif;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ふわっと浮かび上がるアニメーション */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ディレイ用のクラス */
+        .delay-100 { animation-delay: 0.1s; }
+        .delay-200 { animation-delay: 0.2s; }
+        .delay-300 { animation-delay: 0.3s; }
+        .delay-400 { animation-delay: 0.4s; }
+
+        /* グラデーションテキスト */
+        .text-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* スキルタグのホバーエフェクト */
+        .skill-tag {
+            transition: all 0.3s ease;
+        }
+        .skill-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* プロフィール画像の装飾 */
+        .profile-img-container {
+            position: relative;
+            display: inline-block;
+        }
+        .profile-img-container::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: 10px;
+            bottom: 10px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 50%;
+            z-index: -1;
+            transition: all 0.5s ease;
+        }
+        .profile-img-container:hover::before {
+            transform: rotate(180deg);
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-8 relative bg-slate-50">
+
+    <!-- 画面全体の背景はシンプルな色に変更 -->
+    <div class="fixed inset-0 z-[-1] bg-slate-100"></div>
+
+    <!-- mainタグの背景色指定(bg-white/90など)を外し、内側で背景を作る構成に変更 -->
+    <main class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden relative fade-in-up">
+        
+        <!-- プロフィールカード内の背景画像アクセント -->
+        <div class="absolute inset-0 z-0 pointer-events-none">
+            <!-- アクセントとなる背景画像（相対パスの例：'./images/bg.jpg'に変更） -->
+            <div class="absolute inset-0 bg-[url('./images/bg.png')] bg-cover bg-center opacity-40"></div>
+            <!-- テキストの視認性を確保するため、白のグラデーションで覆う -->
+            <!-- 左上（プロフィール画像側）は白を濃く、右下に向かって少し画像を透けさせる -->
+            <div class="absolute inset-0 bg-gradient-to-br from-white/95 via-white/85 to-white/60"></div>
+        </div>
+
+        <div class="relative z-10 flex flex-col md:flex-row">
+            
+            <!-- 左側：プロフィール画像と基本情報 -->
+            <div class="w-full md:w-2/5 p-8 sm:p-12 border-b md:border-b-0 md:border-r border-slate-100 flex flex-col items-center justify-center text-center">
+                
+                <div class="profile-img-container fade-in-up delay-100 mb-6">
+                    <!-- クリック用のクラスなどを外し、元のシンプルな画像に戻しました -->
+                    <img src="./images/profile.jpg" alt="Profile Picture" class="w-40 h-40 object-cover rounded-full border-4 border-white shadow-lg">
+                </div>
+
+                <h1 class="text-3xl font-bold mb-2 fade-in-up delay-200">さく / sak</h1>
+                <p class="text-indigo-500 font-semibold mb-4 fade-in-up delay-200">AI Illustrator</p>
+                
+                <p class="text-slate-500 text-sm leading-relaxed mb-6 fade-in-up delay-300">
+                    2026年5月からAIイラスト始めました&#x1f530;
+                </p>
+
+                <div class="flex space-x-4 fade-in-up delay-400">
+                    <a href="https://x.com/sak_ai_gen" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                        <i class="fa-brands fa-x-twitter"></i>
+                    </a>
+                    <a href="https://www.pixiv.net/users/127125899" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                        <i class="fa-brands fa-pixiv"></i>
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- 右側：詳細情報（About, Skills, Experience） -->
+            <div class="w-full md:w-3/5 p-8 sm:p-12">
+                
+                <section class="mb-10 fade-in-up delay-100">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-user text-indigo-400 mr-3 text-xl"></i>
+                        <span class="text-gradient">About</span>
+                    </h2>
+                    <div class="space-y-4 text-slate-600">
+                        <p>
+                            &#x1f51e;＆NSFW系をメインで、オリジナルの女の子のヌードグラビアを作成しています
+                        </p>
+                        <p>
+                            基本的に女の子は全裸、巨乳/爆乳、陰毛アリとなっています<br/>
+                            (大きいおっぱいと陰毛は自分自身の性癖です...&#x1f4a6;)
+                        </p>
+                        <p>
+                            たまにChatGPTを使ってSFW系の作品もアップします
+                        </p>
+                        <p>
+                            今のところは、100点を狙わずに、70点ぐらいの出来上がりを目標としています
+                        </p>
+                    </div>
+                </section>
+
+                <section class="mb-10 fade-in-up delay-200">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-image text-purple-400 mr-3 text-xl"></i>
+                        <span class="text-gradient">投稿について</span>
+                    </h2>
+                    <div class="space-y-4 text-slate-600">
+                        <p>
+                            マイペースでやっていますので、今のところは1日1枚で投稿しています<br/>
+                            日によっては複数枚投稿する日もあるかも
+                        </p>
+                        <p>
+                            たまに推し活で泊りがけのお出掛けをする時があります、その時は投稿できません(ｽﾐﾏｾﾝ
+                        </p>
+                    </div>
+                </section>
+
+                <section class="mb-10 fade-in-up delay-300">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-person text-pink-400 mr-3 text-xl"></i>
+                        <span class="text-gradient">オリジナルの女の子紹介</span>
+                    </h2>
+                    
+                    <div class="relative border-l-2 border-slate-200 ml-3 pl-6 space-y-6">
+                        <div class="relative">
+                            <h3 class="font-bold text-lg text-slate-800">黒瀬 美月</h3>
+                            <p class="text-slate-500 text-sm font-medium mb-1">くろせ みづき | Mizuki Kurose</p>
+                            <p>
+                                <img src="./images/mizuki.png" alt="Mizuki Kurose" class="zoomable-image w-full h-32 md:h-40 object-cover object-top rounded-xl shadow-sm cursor-pointer transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                            </p>
+                        </div>
+                        
+                        <div class="relative">
+                            <h3 class="font-bold text-lg text-slate-800">朝倉 結菜</h3>
+                            <p class="text-slate-500 text-sm font-medium mb-1">あさくら ゆいな | Yuina Asakura</p>
+                            <p>
+                                <img src="./images/yuina.png" alt="Yuina Asakura" class="zoomable-image w-full h-32 md:h-40 object-cover object-top rounded-xl shadow-sm cursor-pointer transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                            </p>
+                        </div>
+
+                        <div class="relative">
+                            <h3 class="font-bold text-lg text-slate-800">天城 美桜</h3>
+                            <p class="text-slate-500 text-sm font-medium mb-1">あまぎ みお | Mio Amagi</p>
+                            <p>
+                                <img src="./images/mio.png" alt="Mio Amagi" class="zoomable-image w-full h-32 md:h-40 object-cover object-top rounded-xl shadow-sm cursor-pointer transition-transform duration-300 hover:scale-[1.03] hover:shadow-md">
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="fade-in-up delay-400">
+                    <h2 class="text-2xl font-bold mb-4 flex items-center">
+                        <i class="fa-solid fa-star text-yellow-400 mr-3 text-xl"></i>
+                        <span class="text-gradient">最後に</span>
+                    </h2>
+                    <div class="space-y-4 text-slate-600">
+                        <p>
+                            拙いところだらけですが、それでも皆様に目を通して頂けている事に感謝しています<br/>
+                            中の人が飽きない限りは頑張っていこうかと思います！！！
+                        </p>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- 画像ポップアップ（モーダル）用のHTML -->
+    <!-- 初期状態は hidden で非表示。id="imageModal" でJSから制御 -->
+    <div id="imageModal" class="fixed inset-0 z-50 hidden flex items-center justify-center">
+        <!-- 背景の半透明オーバーレイ（ここをクリックしても閉じるようにする） -->
+        <div id="modalBackdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity opacity-0"></div>
+        
+        <!-- ポップアップする画像本体 -->
+        <div id="modalContent" class="relative z-10 p-4 max-w-3xl w-full mx-4 transition-all transform scale-95 opacity-0">
+            <!-- 閉じるボタン（右上の×マーク） -->
+            <button id="closeModalBtn" class="absolute top-6 right-6 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <!-- 拡大表示する画像 -->
+            <img id="modalImageSrc" src="" alt="Enlarged Profile Picture" class="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[80vh]">
+        </div>
+    </div>
+
+    <!-- ちょっとしたスクリプト：Contactボタンと画像ポップアップのアクション -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 画像ポップアップ（モーダル）の処理 ---
+            // zoomable-imageクラスを持つすべての画像を取得
+            const zoomableImages = document.querySelectorAll('.zoomable-image');
+            const imageModal = document.getElementById('imageModal');
+            const modalBackdrop = document.getElementById('modalBackdrop');
+            const modalContent = document.getElementById('modalContent');
+            const modalImageSrc = document.getElementById('modalImageSrc');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            // モーダルを開く関数
+            const openModal = (imageSrcUrl) => {
+                // クリックされた画像のsrcを引数で受け取ってセット
+                modalImageSrc.src = imageSrcUrl;
+                
+                // モーダルを表示（hiddenを外す）
+                imageModal.classList.remove('hidden');
+                
+                // アニメーションのために少し遅延させて透明度とスケールを変更
+                // requestAnimationFrameを使うことでスムーズなCSSアニメーションをトリガー
+                requestAnimationFrame(() => {
+                    modalBackdrop.classList.remove('opacity-0');
+                    modalContent.classList.remove('scale-95', 'opacity-0');
+                    modalContent.classList.add('scale-100', 'opacity-100');
+                });
+                
+                // 背面のスクロールを禁止
+                document.body.style.overflow = 'hidden';
+            };
+
+            // モーダルを閉じる関数
+            const closeModal = () => {
+                // アニメーションのために透明度とスケールを元に戻す
+                modalBackdrop.classList.add('opacity-0');
+                modalContent.classList.remove('scale-100', 'opacity-100');
+                modalContent.classList.add('scale-95', 'opacity-0');
+                
+                // アニメーションが終わるのを待ってから（300ms）要素を非表示にする
+                setTimeout(() => {
+                    imageModal.classList.add('hidden');
+                    // 背面のスクロール禁止を解除
+                    document.body.style.overflow = '';
+                }, 300); // transitionのdurationに合わせる
+            };
+
+            // 取得したすべての対象画像にクリックイベントを登録
+            zoomableImages.forEach(img => {
+                img.addEventListener('click', () => openModal(img.src));
+            });
+
+            // 閉じる用のイベントリスナー
+            closeModalBtn.addEventListener('click', closeModal); // ×ボタンで閉じる
+            modalBackdrop.addEventListener('click', closeModal); // 背景クリックで閉じる
+            
+            // ESCキーを押したときにも閉じるようにする
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !imageModal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
