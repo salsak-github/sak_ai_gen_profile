@@ -172,7 +172,7 @@
             </h1>
             <p class="text-zinc-500 text-base sm:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
                 制作したイラスト・アートワークを掲載しています。<br class="hidden sm:inline">
-                `images/` フォルダに画像をプッシュするだけで自動更新されます。
+                直下に画像をプッシュするだけで自動更新されます。
             </p>
 
             <!-- GitHub Pages Dynamic Sync Status Badge -->
@@ -236,7 +236,7 @@
                 <i data-lucide="image-off" class="w-12 h-12 text-zinc-300 mx-auto mb-4"></i>
                 <h3 class="text-base font-semibold text-zinc-800">イラストが見つかりません</h3>
                 <p class="text-xs text-zinc-500 mt-2 max-w-md mx-auto leading-relaxed">
-                    リポジトリ内の <code class="bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 text-zinc-800">images/</code> フォルダに画像を格納してプッシュしてください。<br>
+                    リポジトリの直下（<code class="bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 text-zinc-800">index.html</code> と同じ階層）に画像ファイルをプッシュしてください。<br>
                     ローカルでの動作テストは「設定」から手動でリポジトリ名を指定できます。
                 </p>
                 <button onclick="openConfigModal()" class="mt-5 px-5 py-2.5 text-xs bg-zinc-900 text-white rounded-xl font-semibold shadow hover:bg-zinc-800 transition-all">
@@ -350,8 +350,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-700 mb-1">画像フォルダパス</label>
-                    <input type="text" id="cfgFolder" placeholder="例: images" value="images" class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                    <label class="block text-xs font-semibold text-zinc-700 mb-1">画像フォルダパス（空欄で直下）</label>
+                    <input type="text" id="cfgFolder" placeholder="空欄（直下）または folder-name" value="" class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900">
                 </div>
 
                 <div class="pt-4 flex items-center gap-3">
@@ -429,7 +429,7 @@
         let config = {
             user: localStorage.getItem('gh_user') || '',
             repo: localStorage.getItem('gh_repo') || '',
-            folder: localStorage.getItem('gh_folder') || 'images'
+            folder: localStorage.getItem('gh_folder') !== null ? localStorage.getItem('gh_folder') : ''
         };
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -470,18 +470,21 @@
 
             // If user & repo configured or auto-detected, fetch from GitHub API
             if (config.user && config.repo) {
-                statusEl.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin text-zinc-400"></i> GitHub Pages (${config.user}/${config.repo}) の \`${config.folder}/\` を自動同期中...`;
+                const folderPathText = config.folder ? `\`${config.folder}/\`` : '直下（ルート）';
+                statusEl.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin text-zinc-400"></i> GitHub Pages (${config.user}/${config.repo}) の ${folderPathText} を自動同期中...`;
                 lucide.createIcons();
 
                 try {
-                    const apiUrl = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${config.folder}`;
+                    // Clean folder path URL string
+                    const targetPath = config.folder ? `contents/${config.folder}` : 'contents';
+                    const apiUrl = `https://api.github.com/repos/${config.user}/${config.repo}/${targetPath}`;
                     const res = await fetch(apiUrl);
                     
                     if (!res.ok) throw new Error('Repository directory not found');
                     
                     const files = await res.json();
                     
-                    // Filter image files
+                    // Filter: ONLY files (exclude subdirectories) and match image extensions
                     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
                     const imageFiles = files.filter(file => 
                         file.type === 'file' && imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
@@ -498,7 +501,7 @@
                         }));
                         statusEl.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> GitHubから ${currentArtworks.length} 件の作品を自動読み込み完了`;
                     } else {
-                        statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500"></i> \`${config.folder}\` フォルダに画像が見つかりません。`;
+                        statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500"></i> ${folderPathText} に画像ファイルが見つかりません。`;
                         currentArtworks = [];
                     }
                 } catch (err) {
@@ -683,7 +686,7 @@
         function openConfigModal() {
             document.getElementById('cfgUser').value = config.user;
             document.getElementById('cfgRepo').value = config.repo;
-            document.getElementById('cfgFolder').value = config.folder || 'images';
+            document.getElementById('cfgFolder').value = config.folder || '';
 
             const modal = document.getElementById('configModal');
             modal.classList.remove('hidden');
@@ -700,7 +703,7 @@
             e.preventDefault();
             config.user = document.getElementById('cfgUser').value.trim();
             config.repo = document.getElementById('cfgRepo').value.trim();
-            config.folder = document.getElementById('cfgFolder').value.trim() || 'images';
+            config.folder = document.getElementById('cfgFolder').value.trim();
 
             localStorage.setItem('gh_user', config.user);
             localStorage.setItem('gh_repo', config.repo);
