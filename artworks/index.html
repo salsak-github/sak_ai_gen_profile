@@ -407,24 +407,39 @@
             // If user & repo configured or auto-detected, fetch from GitHub API
             if (config.user && config.repo) {
                 try {
-                    // Clean folder path URL string
-                    const targetPath = config.folder ? `contents/${config.folder}` : 'contents';
-                    const apiUrl = `https://api.github.com/repos/${config.user}/${config.repo}/${targetPath}`;
-                    const res = await fetch(apiUrl);
-                    
-                    if (!res.ok) throw new Error('Repository directory not found');
-                    
-                    const files = await res.json();
+                    // Fetch repository git tree recursively to include subfolders inside images/
+                    const branchRes = await fetch(`https://api.github.com/repos/${config.user}/${config.repo}`);
+                    let defaultBranch = 'main';
+                    if (branchRes.ok) {
+                        const repoInfo = await branchRes.json();
+                        defaultBranch = repoInfo.default_branch || 'main';
+                    }
 
-                    let metadata = {};
-                    const jsonFile = files.find(f => f.type === 'file' && (f.name === 'info.json' || f.name === 'gallery.json'));
+                    const treeUrl = `https://api.github.com/repos/${config.user}/${config.repo}/git/trees/${defaultBranch}?recursive=1`;
+                    const res = await fetch(treeUrl);
                     
-                    if (jsonFile && jsonFile.download_url) {
+                    if (!res.ok) throw new Error('Repository tree fetch failed');
+                    
+                    const treeData = await res.json();
+                    const allTreeItems = treeData.tree || [];
+
+                    // Normalize target folder path (e.g. "my-folder/images")
+                    const targetPrefix = config.folder ? config.folder.replace(/^\/+|\/+$/g, '') + '/' : '';
+
+                    // 1. Find info.json / gallery.json within target images folder
+                    let metadata = {};
+                    const jsonItem = allTreeItems.find(item => 
+                        item.type === 'blob' && 
+                        item.path.startsWith(targetPrefix) && 
+                        (item.path.endsWith('info.json') || item.path.endsWith('gallery.json'))
+                    );
+
+                    if (jsonItem) {
                         try {
-                            const metaRes = await fetch(jsonFile.download_url);
+                            const rawUrl = `https://raw.githubusercontent.com/${config.user}/${config.repo}/${defaultBranch}/${jsonItem.path}`;
+                            const metaRes = await fetch(rawUrl);
                             if (metaRes.ok) {
                                 const rawMeta = await metaRes.json();
-                                // Support array style or object dictionary style
                                 if (Array.isArray(rawMeta)) {
                                     rawMeta.forEach(item => {
                                         const key = item.file || item.filename || item.name;
@@ -438,30 +453,39 @@
                             console.warn('info.json の読み込みに失敗しました', e);
                         }
                     }
-                    
-                    // Filter: ONLY files (exclude subdirectories) and match image extensions
+
+                    // 2. Filter images under the specified images/ directory (including subfolders)
                     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
-                    const imageFiles = files.filter(file => 
-                        file.type === 'file' && imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
+                    const imageFiles = allTreeItems.filter(item => 
+                        item.type === 'blob' && 
+                        item.path.startsWith(targetPrefix) && 
+                        imageExtensions.some(ext => item.path.toLowerCase().endsWith(ext))
                     );
 
                     if (imageFiles.length > 0) {
                         currentArtworks = imageFiles.map((file, idx) => {
-                            const meta = metadata[file.name] || {};
+                            // Extract relative path inside images folder (e.g. "character/hero.png")
+                            const relPath = file.path.substring(targetPrefix.length);
+                            const filename = file.path.split('/').pop();
+
+                            // Check metadata matching either "character/hero.png" OR "hero.png"
+                            const meta = metadata[relPath] || metadata[filename] || {};
+                            const rawDownloadUrl = `https://raw.githubusercontent.com/${config.user}/${config.repo}/${defaultBranch}/${file.path}`;
+
                             return {
                                 id: String(idx + 1),
-                                title: meta.title || formatTitle(file.name),
-                                url: file.download_url,
+                                title: meta.title || formatTitle(filename),
+                                url: rawDownloadUrl,
                                 date: meta.date || '',
                                 tags: parseTags(meta.tags || meta.tag || meta.category),
-                                desc: meta.desc || meta.description || `ファイル名: ${file.name}`
+                                desc: meta.desc || meta.description || `ファイル: ${relPath}`
                             };
                         });
                     } else {
                         currentArtworks = [];
                     }
                 } catch (err) {
-                    console.warn('GitHub API Fetch failed or directory missing.', err);
+                    console.warn('GitHub API Fetch failed or tree unreadable.', err);
                     currentArtworks = SAMPLE_ARTWORKS;
                 }
             } else {
