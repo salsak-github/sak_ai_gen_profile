@@ -237,7 +237,7 @@
                 <h3 class="text-base font-semibold text-zinc-800">イラストが見つかりません</h3>
                 <p class="text-xs text-zinc-500 mt-2 max-w-md mx-auto leading-relaxed">
                     このページと同じフォルダー内に <code class="bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 text-zinc-800">images</code> フォルダーを作成し、そこに画像をプッシュしてください。<br>
-                    例: <code class="bg-zinc-100 px-1 py-0.5 rounded text-zinc-700">フォルダー/images/sample.jpg</code>
+                    タイトルやタグを自由設定するには <code class="bg-zinc-100 px-1 py-0.5 rounded text-zinc-700">images/info.json</code> を配置します。
                 </p>
                 <button onclick="openConfigModal()" class="mt-5 px-5 py-2.5 text-xs bg-zinc-900 text-white rounded-xl font-semibold shadow hover:bg-zinc-800 transition-all">
                     設定画面を開く
@@ -374,7 +374,7 @@
                 title: 'Morning Breeze',
                 url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80',
                 date: '2026.08',
-                tag: 'Original',
+                tags: ['Original', 'Abstract'],
                 desc: '光と影のグラデーションに焦点を当てたアブストラクトイラスト。'
             },
             {
@@ -382,7 +382,7 @@
                 title: 'Silent Reflection',
                 url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000&auto=format&fit=crop&q=80',
                 date: '2026.07',
-                tag: 'Landscape',
+                tags: ['Landscape', 'Water'],
                 desc: '静かな水面に映り込む光を表現。'
             },
             {
@@ -390,7 +390,7 @@
                 title: 'Neon Bloom',
                 url: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=1000&auto=format&fit=crop&q=80',
                 date: '2026.06',
-                tag: 'Concept',
+                tags: ['Concept', 'Flower'],
                 desc: '鮮やかな色彩と有機的なシェイプの構成。'
             }
         ];
@@ -463,7 +463,7 @@
 
             // If user & repo configured or auto-detected, fetch from GitHub API
             if (config.user && config.repo) {
-                const folderPathText = `\`${config.folder}/\``;
+                const folderPathText = config.folder ? `\`${config.folder}/\`` : '`直下/`';
                 statusEl.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin text-zinc-400"></i> GitHub Pages (${config.user}/${config.repo}) の ${folderPathText} を自動同期中...`;
                 lucide.createIcons();
 
@@ -476,6 +476,29 @@
                     if (!res.ok) throw new Error('Repository directory not found');
                     
                     const files = await res.json();
+
+                    let metadata = {};
+                    const jsonFile = files.find(f => f.type === 'file' && (f.name === 'info.json' || f.name === 'gallery.json'));
+                    
+                    if (jsonFile && jsonFile.download_url) {
+                        try {
+                            const metaRes = await fetch(jsonFile.download_url);
+                            if (metaRes.ok) {
+                                const rawMeta = await metaRes.json();
+                                // Support array style or object dictionary style
+                                if (Array.isArray(rawMeta)) {
+                                    rawMeta.forEach(item => {
+                                        const key = item.file || item.filename || item.name;
+                                        if (key) metadata[key] = item;
+                                    });
+                                } else if (typeof rawMeta === 'object') {
+                                    metadata = rawMeta;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('info.json の読み込みに失敗しました (構文チェックしてください)', e);
+                        }
+                    }
                     
                     // Filter: ONLY files (exclude subdirectories) and match image extensions
                     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
@@ -484,15 +507,20 @@
                     );
 
                     if (imageFiles.length > 0) {
-                        currentArtworks = imageFiles.map((file, idx) => ({
-                            id: String(idx + 1),
-                            title: formatTitle(file.name),
-                            url: file.download_url,
-                            date: 'GitHub Live Sync',
-                            tag: 'Illustration',
-                            desc: `ファイル名: ${file.name}`
-                        }));
-                        statusEl.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> ${folderPathText} から ${currentArtworks.length} 件の作品を同期完了`;
+                        currentArtworks = imageFiles.map((file, idx) => {
+                            const meta = metadata[file.name] || {};
+                            return {
+                                id: String(idx + 1),
+                                title: meta.title || formatTitle(file.name),
+                                url: file.download_url,
+                                date: meta.date || 'GitHub Live Sync',
+                                tags: parseTags(meta.tags || meta.tag || meta.category),
+                                desc: meta.desc || meta.description || `ファイル名: ${file.name}`
+                            };
+                        });
+                        
+                        const hasCustomMeta = Object.keys(metadata).length > 0;
+                        statusEl.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> ${folderPathText} から ${currentArtworks.length} 件の作品を同期完了 ${hasCustomMeta ? '(info.json適用済み)' : ''}`;
                     } else {
                         statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500"></i> ${folderPathText} に画像ファイルが見つかりません。`;
                         currentArtworks = [];
@@ -513,6 +541,17 @@
             applyFilterAndRender();
         }
 
+        // Helper to normalize tags (supports Array, comma/space separated string, or single string)
+        function parseTags(rawTags) {
+            if (Array.isArray(rawTags)) {
+                return rawTags.map(t => String(t).trim()).filter(Boolean);
+            }
+            if (typeof rawTags === 'string' && rawTags.trim()) {
+                return rawTags.split(/[,,\s]+/).map(t => t.trim()).filter(Boolean);
+            }
+            return ['Illustration'];
+        }
+
         // Clean filename into readable title
         function formatTitle(filename) {
             const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
@@ -523,7 +562,8 @@
 
         function buildFilters() {
             const tagContainer = document.getElementById('tagFilters');
-            const tags = ['all', ...new Set(currentArtworks.map(a => a.tag))];
+            const allTags = currentArtworks.flatMap(a => a.tags || []);
+            const tags = ['all', ...new Set(allTags)];
 
             tagContainer.innerHTML = tags.map(tag => `
                 <button data-filter="${tag}" onclick="setFilter('${tag}')" 
@@ -552,7 +592,7 @@
             if (activeFilter === 'all') {
                 filteredArtworks = [...currentArtworks];
             } else {
-                filteredArtworks = currentArtworks.filter(a => a.tag === activeFilter);
+                filteredArtworks = currentArtworks.filter(a => (a.tags || []).includes(activeFilter));
             }
 
             document.getElementById('itemCount').textContent = `${filteredArtworks.length} items`;
@@ -584,7 +624,9 @@
                         
                         <!-- Hover Overlay Gradient -->
                         <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-zinc-950/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                            <span class="text-[10px] font-bold text-white/80 tracking-widest uppercase mb-1">#${item.tag}</span>
+                            <div class="flex flex-wrap gap-1.5 mb-1">
+                                ${(item.tags || []).map(t => `<span class="text-[10px] font-bold text-white/80 tracking-widest uppercase">#${t}</span>`).join('')}
+                            </div>
                             <h3 class="text-lg font-bold text-white leading-snug">${item.title}</h3>
                             <p class="text-xs text-white/70 mt-1 line-clamp-1">${item.desc}</p>
                         </div>
@@ -623,7 +665,9 @@
             document.getElementById('lightboxDownload').href = item.url;
 
             const tagsContainer = document.getElementById('lightboxTags');
-            tagsContainer.innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-700 text-[11px] font-medium">#${item.tag}</span>`;
+            tagsContainer.innerHTML = (item.tags || []).map(t => 
+                `<span class="px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-700 text-[11px] font-medium">#${t}</span>`
+            ).join('');
 
             const lightbox = document.getElementById('lightbox');
             const content = document.getElementById('lightboxContent');
