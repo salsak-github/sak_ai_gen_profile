@@ -343,11 +343,12 @@
         let currentLayout = 'grid';
         let lightboxIndex = 0;
 
-        // GitHub Repository Configuration
+        // Configuration for directory & repository
         let config = {
             user: '',
             repo: '',
-            folder: ''
+            folder: 'images',
+            basePath: ''
         };
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -357,7 +358,7 @@
             }
             lucide.createIcons();
             
-            // Auto-detect GitHub user, repo, and page's directory folder
+            // Auto-detect GitHub user, repo, and page's relative directory
             detectGitHubEnvironment();
 
             // Load gallery images
@@ -372,42 +373,55 @@
             });
         });
 
-        // Automatically parse hostname & path to deduce GitHub user, repo, and local `./images` directory
+        // Automatically parse hostname & path to deduce GitHub environment
         function detectGitHubEnvironment() {
             const host = window.location.hostname;
+            const pathname = window.location.pathname;
+
             if (host.includes('.github.io')) {
                 const detectedUser = host.split('.')[0];
-                const pathParts = window.location.pathname.split('/').filter(Boolean);
+                const pathParts = pathname.split('/').filter(Boolean);
                 
-                if (pathParts.length > 0) {
-                    const detectedRepo = pathParts[0];
-                    
-                    // Extract directory path where index.html is located
-                    let dirParts = pathParts.slice(1);
-                    if (dirParts.length > 0 && dirParts[dirParts.length - 1].includes('.')) {
-                        dirParts.pop(); // Remove file name like 'index.html'
-                    }
-                    
-                    // Set target folder to `images` relative to current HTML location
-                    const pageDir = dirParts.join('/');
-                    const targetImagesFolder = pageDir ? `${pageDir}/images` : 'images';
+                let detectedRepo = '';
+                let dirParts = [];
 
-                    config.user = detectedUser;
-                    config.repo = detectedRepo;
-                    config.folder = targetImagesFolder;
+                if (pathParts.length > 0) {
+                    // Check if repository is 'user.github.io' or a standard repo
+                    if (pathParts[0].toLowerCase() === `${detectedUser.toLowerCase()}.github.io`) {
+                        detectedRepo = pathParts[0];
+                        dirParts = pathParts.slice(1);
+                    } else {
+                        detectedRepo = pathParts[0];
+                        dirParts = pathParts.slice(1);
+                    }
+                } else {
+                    // User pages root (username.github.io)
+                    detectedRepo = `${detectedUser}.github.io`;
                 }
+                
+                // Remove trailing filename if present (e.g., 'index.html')
+                if (dirParts.length > 0 && dirParts[dirParts.length - 1].includes('.')) {
+                    dirParts.pop();
+                }
+                
+                const pageDir = dirParts.join('/');
+                config.user = detectedUser;
+                config.repo = detectedRepo;
+                config.folder = pageDir ? `${pageDir}/images` : 'images';
+                config.basePath = pageDir ? `./` : './';
             } else {
                 config.folder = 'images';
+                config.basePath = './';
             }
         }
 
         async function loadGalleryData() {
             const skeletonEl = document.getElementById('loadingSkeleton');
+            let loadedSuccessfully = false;
 
-            // If user & repo configured or auto-detected, fetch from GitHub API
+            // 1. Try fetching via GitHub REST API if repository is detected
             if (config.user && config.repo) {
                 try {
-                    // Fetch repository git tree recursively to include subfolders inside images/
                     const branchRes = await fetch(`https://api.github.com/repos/${config.user}/${config.repo}`);
                     let defaultBranch = 'main';
                     if (branchRes.ok) {
@@ -418,77 +432,115 @@
                     const treeUrl = `https://api.github.com/repos/${config.user}/${config.repo}/git/trees/${defaultBranch}?recursive=1`;
                     const res = await fetch(treeUrl);
                     
-                    if (!res.ok) throw new Error('Repository tree fetch failed');
-                    
-                    const treeData = await res.json();
-                    const allTreeItems = treeData.tree || [];
+                    if (res.ok) {
+                        const treeData = await res.json();
+                        const allTreeItems = treeData.tree || [];
 
-                    // Normalize target folder path (e.g. "my-folder/images")
-                    const targetPrefix = config.folder ? config.folder.replace(/^\/+|\/+$/g, '') + '/' : '';
+                        const targetPrefix = config.folder ? config.folder.replace(/^\/+|\/+$/g, '') + '/' : '';
 
-                    // 1. Find info.json / gallery.json within target images folder
-                    let metadata = {};
-                    const jsonItem = allTreeItems.find(item => 
-                        item.type === 'blob' && 
-                        item.path.startsWith(targetPrefix) && 
-                        (item.path.endsWith('info.json') || item.path.endsWith('gallery.json'))
-                    );
+                        // Read metadata from info.json or gallery.json inside images folder
+                        let metadata = {};
+                        const jsonItem = allTreeItems.find(item => 
+                            item.type === 'blob' && 
+                            item.path.startsWith(targetPrefix) && 
+                            (item.path.endsWith('info.json') || item.path.endsWith('gallery.json'))
+                        );
 
-                    if (jsonItem) {
-                        try {
-                            const rawUrl = `https://raw.githubusercontent.com/${config.user}/${config.repo}/${defaultBranch}/${jsonItem.path}`;
-                            const metaRes = await fetch(rawUrl);
-                            if (metaRes.ok) {
-                                const rawMeta = await metaRes.json();
-                                if (Array.isArray(rawMeta)) {
-                                    rawMeta.forEach(item => {
-                                        const key = item.file || item.filename || item.name;
-                                        if (key) metadata[key] = item;
-                                    });
-                                } else if (typeof rawMeta === 'object') {
-                                    metadata = rawMeta;
+                        if (jsonItem) {
+                            try {
+                                const metaRes = await fetch(`./${jsonItem.path.substring(targetPrefix.length ? config.folder.length - 6 : 0)}`);
+                                const fetchMetaRes = metaRes.ok ? metaRes : await fetch(`https://raw.githubusercontent.com/${config.user}/${config.repo}/${defaultBranch}/${jsonItem.path}`);
+                                if (fetchMetaRes.ok) {
+                                    const rawMeta = await fetchMetaRes.json();
+                                    if (Array.isArray(rawMeta)) {
+                                        rawMeta.forEach(item => {
+                                            const key = item.file || item.filename || item.name;
+                                            if (key) metadata[key] = item;
+                                        });
+                                    } else if (typeof rawMeta === 'object') {
+                                        metadata = rawMeta;
+                                    }
                                 }
+                            } catch (e) {
+                                console.warn('info.json 読み込み失敗:', e);
                             }
-                        } catch (e) {
-                            console.warn('info.json の読み込みに失敗しました', e);
                         }
-                    }
 
-                    // 2. Filter images under the specified images/ directory (including subfolders)
-                    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
-                    const imageFiles = allTreeItems.filter(item => 
-                        item.type === 'blob' && 
-                        item.path.startsWith(targetPrefix) && 
-                        imageExtensions.some(ext => item.path.toLowerCase().endsWith(ext))
-                    );
+                        // Filter images in images/ directory
+                        const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+                        const imageFiles = allTreeItems.filter(item => 
+                            item.type === 'blob' && 
+                            item.path.startsWith(targetPrefix) && 
+                            imageExtensions.some(ext => item.path.toLowerCase().endsWith(ext))
+                        );
 
-                    if (imageFiles.length > 0) {
-                        currentArtworks = imageFiles.map((file, idx) => {
-                            // Extract relative path inside images folder (e.g. "character/hero.png")
-                            const relPath = file.path.substring(targetPrefix.length);
-                            const filename = file.path.split('/').pop();
+                        if (imageFiles.length > 0) {
+                            currentArtworks = imageFiles.map((file, idx) => {
+                                const relPath = file.path.substring(targetPrefix.length);
+                                const filename = file.path.split('/').pop();
 
-                            // Check metadata matching either "character/hero.png" OR "hero.png"
-                            const meta = metadata[relPath] || metadata[filename] || {};
-                            const rawDownloadUrl = `https://raw.githubusercontent.com/${config.user}/${config.repo}/${defaultBranch}/${file.path}`;
+                                const meta = metadata[relPath] || metadata[filename] || {};
+                                
+                                // Relative URL for reliable browser loading without raw.githubusercontent issues
+                                const relativeUrl = `./images/${relPath}`;
 
-                            return {
-                                id: String(idx + 1),
-                                title: meta.title || formatTitle(filename),
-                                url: rawDownloadUrl,
-                                date: meta.date || '',
-                                tags: parseTags(meta.tags || meta.tag || meta.category),
-                                desc: meta.desc || meta.description || `ファイル: ${relPath}`
-                            };
-                        });
+                                return {
+                                    id: String(idx + 1),
+                                    title: meta.title || formatTitle(filename),
+                                    url: relativeUrl,
+                                    date: meta.date || '',
+                                    tags: parseTags(meta.tags || meta.tag || meta.category),
+                                    desc: meta.desc || meta.description || `ファイル: ${relPath}`
+                                };
+                            });
+                            loadedSuccessfully = true;
+                        }
                     } else {
-                        currentArtworks = [];
+                        console.warn(`GitHub API 応答エラー (${res.status}): ローカル info.json へフォールバックします`);
                     }
                 } catch (err) {
-                    console.warn('GitHub API Fetch failed or tree unreadable.', err);
-                    currentArtworks = SAMPLE_ARTWORKS;
+                    console.warn('GitHub API エラー:', err);
                 }
-            } else {
+            }
+
+            // 2. Fallback: Direct fetch of `./images/info.json` if API fails or Rate-Limited
+            if (!loadedSuccessfully) {
+                try {
+                    const infoRes = await fetch('./images/info.json');
+                    if (infoRes.ok) {
+                        const metadata = await infoRes.json();
+                        const items = [];
+                        let idx = 1;
+
+                        const metaEntries = Array.isArray(metadata) 
+                            ? metadata.map(m => [m.file || m.name, m])
+                            : Object.entries(metadata);
+
+                        for (const [key, meta] of metaEntries) {
+                            if (!key) continue;
+                            const filename = key.split('/').pop();
+                            items.push({
+                                id: String(idx++),
+                                title: meta.title || formatTitle(filename),
+                                url: `./images/${key}`,
+                                date: meta.date || '',
+                                tags: parseTags(meta.tags || meta.tag || meta.category),
+                                desc: meta.desc || meta.description || `ファイル: ${key}`
+                            });
+                        }
+
+                        if (items.length > 0) {
+                            currentArtworks = items;
+                            loadedSuccessfully = true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Direct info.json fallback fetch failed:', e);
+                }
+            }
+
+            // 3. Fallback to sample artworks if no images found at all
+            if (!loadedSuccessfully || currentArtworks.length === 0) {
                 currentArtworks = SAMPLE_ARTWORKS;
             }
 
@@ -498,7 +550,7 @@
             applyFilterAndRender();
         }
 
-        // Helper to normalize tags (supports Array, comma/space separated string, or single string)
+        // Helper to normalize tags
         function parseTags(rawTags) {
             if (Array.isArray(rawTags)) {
                 return rawTags.map(t => String(t).trim()).filter(Boolean);
