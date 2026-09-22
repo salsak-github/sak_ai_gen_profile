@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Illustration Gallery | Portfolio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Noto Sans JP"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fafafa',
+                            100: '#f4f4f5',
+                            200: '#e4e4e7',
+                            800: '#27272a',
+                            900: '#18181b',
+                        }
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-10px) rotate(1deg)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        pulseSlow: {
+                            '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
+                            '50%': { opacity: '0.8', transform: 'scale(1.05)' },
+                        }
+                    },
+                    animation: {
+                        float: 'float 6s ease-in-out infinite',
+                        fadeIn: 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        pulseSlow: 'pulseSlow 4s ease-in-out infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #fcfcfd;
+            color: #18181b;
+            overflow-x: hidden;
+        }
+
+        /* Ambient floating background blur effect */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.35;
+        }
+
+        /* Glassmorphism utility */
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f3;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4d4d8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1aa;
+        }
+
+        /* Card reveal effect */
+        .reveal-item {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-item.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-zinc-900 selection:text-white">
+
+    <div class="ambient-bg">
+        <div class="ambient-orb w-[400px] h-[400px] bg-sky-200 top-[-100px] left-[-100px] animate-pulseSlow"></div>
+        <div class="ambient-orb w-[500px] h-[500px] bg-purple-100 top-[30%] right-[-150px] animate-pulseSlow" style="animation-delay: 1.5s;"></div>
+        <div class="ambient-orb w-[450px] h-[450px] bg-rose-100 bottom-[-100px] left-[20%] animate-pulseSlow" style="animation-delay: 3s;"></div>
+    </div>
+
+    <header class="sticky top-0 z-40 w-full glass border-b border-zinc-200/50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="#" class="group flex items-center gap-3 text-zinc-900 font-bold text-xl tracking-tight">
+                <div class="w-10 h-10 rounded-2xl bg-zinc-900 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300">
+                    <i data-lucide="palette" class="w-5 h-5"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="leading-none text-lg">ARTWORK</span>
+                    <span class="text-[10px] font-normal tracking-widest text-zinc-400 uppercase">Gallery</span>
+                </div>
+            </a>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600">
+                <a href="#gallery" class="hover:text-zinc-900 transition-colors">Gallery</a>
+                <a href="#about" class="hover:text-zinc-900 transition-colors">About</a>
+                <button onclick="openConfigModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200/80 text-zinc-800 text-xs font-semibold transition-all">
+                    <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+                    <span>設定・接続変更</span>
+                </button>
+            </nav>
+
+            <!-- Social Links & Setup Trigger -->
+            <div class="flex items-center gap-3">
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="p-2 rounded-full text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="p-2 rounded-full text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all">
+                    <i data-lucide="twitter" class="w-5 h-5"></i>
+                </a>
+                <button onclick="openConfigModal()" class="md:hidden p-2 rounded-full text-zinc-600 hover:bg-zinc-100">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <section class="text-center py-12 md:py-16 relative">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-zinc-200/80 shadow-sm text-xs text-zinc-600 mb-6 animate-fadeIn">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>Auto-Sync Gallery Enabled</span>
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-zinc-900 tracking-tight mb-4 leading-tight">
+                Illustrations & Artwork
+            </h1>
+            <p class="text-zinc-500 text-base sm:text-lg max-w-2xl mx-auto font-normal leading-relaxed">
+                制作したイラスト・アートワークを掲載しています。<br class="hidden sm:inline">
+                `images/` フォルダに画像をプッシュするだけで自動更新されます。
+            </p>
+
+            <!-- GitHub Pages Dynamic Sync Status Badge -->
+            <div id="syncStatus" class="mt-8 inline-flex items-center gap-2 text-xs text-zinc-500 bg-white px-4 py-2 rounded-xl border border-zinc-200/80 shadow-sm">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin text-zinc-400"></i>
+                <span>読み込み中...</span>
+            </div>
+        </section>
+
+        <section id="gallery" class="mt-8 mb-10">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-zinc-200/60">
+                <!-- Tag Filters -->
+                <div id="tagFilters" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <button data-filter="all" class="filter-btn active px-4 py-2 rounded-xl text-sm font-medium transition-all bg-zinc-900 text-white shadow-sm">
+                        All Works
+                    </button>
+                    <!-- Category buttons populated dynamically -->
+                </div>
+
+                <!-- View Mode & Sorting -->
+                <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+                    <span id="itemCount" class="text-xs text-zinc-400 font-medium">0 items</span>
+                    
+                    <div class="h-4 w-[1px] bg-zinc-200"></div>
+
+                    <!-- Sort Selection -->
+                    <select id="sortSelect" onchange="handleSort(this.value)" class="bg-white text-zinc-700 text-xs font-medium px-3 py-2 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 cursor-pointer">
+                        <option value="newest">新しい順 (Newest)</option>
+                        <option value="oldest">古い順 (Oldest)</option>
+                        <option value="random">ランダム (Random)</option>
+                    </select>
+
+                    <!-- Layout Toggle -->
+                    <div class="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200/60">
+                        <button id="gridBtn" onclick="setLayout('grid')" class="p-1.5 rounded-lg bg-white shadow-sm text-zinc-900 transition-all">
+                            <i data-lucide="grid" class="w-4 h-4"></i>
+                        </button>
+                        <button id="masonryBtn" onclick="setLayout('masonry')" class="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 transition-all">
+                            <i data-lucide="columns" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <!-- Loading Grid Skeleton -->
+            <div id="loadingSkeleton" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="h-80 rounded-3xl bg-zinc-200/60 animate-pulse"></div>
+                <div class="h-80 rounded-3xl bg-zinc-200/60 animate-pulse"></div>
+                <div class="h-80 rounded-3xl bg-zinc-200/60 animate-pulse"></div>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-500">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-20 bg-white/60 rounded-3xl border border-dashed border-zinc-200 backdrop-blur-sm">
+                <i data-lucide="image-off" class="w-12 h-12 text-zinc-300 mx-auto mb-4"></i>
+                <h3 class="text-base font-semibold text-zinc-800">イラストが見つかりません</h3>
+                <p class="text-xs text-zinc-500 mt-2 max-w-md mx-auto leading-relaxed">
+                    リポジトリ内の <code class="bg-zinc-100 px-1.5 py-0.5 rounded border border-zinc-200 text-zinc-800">images/</code> フォルダに画像を格納してプッシュしてください。<br>
+                    ローカルでの動作テストは「設定」から手動でリポジトリ名を指定できます。
+                </p>
+                <button onclick="openConfigModal()" class="mt-5 px-5 py-2.5 text-xs bg-zinc-900 text-white rounded-xl font-semibold shadow hover:bg-zinc-800 transition-all">
+                    設定画面を開く
+                </button>
+            </div>
+        </section>
+
+        <section id="about" class="mt-28 pt-16 border-t border-zinc-200/60">
+            <div class="max-w-3xl mx-auto text-center">
+                <div class="w-20 h-20 rounded-full mx-auto mb-6 p-1 bg-white border border-zinc-200 shadow-md">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80" alt="Creator Profile" class="w-full h-full object-cover rounded-full">
+                </div>
+                <h2 class="text-2xl font-bold text-zinc-900">Creator Profile</h2>
+                <p class="text-xs text-zinc-400 mt-1 uppercase tracking-widest font-semibold">Illustrator / Concept Artist</p>
+                <p class="text-zinc-600 mt-4 leading-relaxed text-sm">
+                    光と影、透明感をテーマにデジタルイラストを制作しています。<br>
+                    使用ツール: CLIP STUDIO PAINT / Photoshop / Procreate
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-20 border-t border-zinc-200/60 bg-white/50 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-zinc-400">
+            <p>&copy; <span id="currentYear"></span> Illustration Portfolio. Powered by GitHub Pages.</p>
+        </div>
+    </footer>
+
+    <div id="lightbox" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4 sm:p-8 bg-zinc-950/80 backdrop-blur-md">
+        <!-- Close Button -->
+        <button onclick="closeLightbox()" class="absolute top-6 right-6 p-3 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all z-10">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+
+        <!-- Nav Previous -->
+        <button onclick="prevImage()" class="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 p-3 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all z-10">
+            <i data-lucide="chevron-left" class="w-8 h-8"></i>
+        </button>
+
+        <!-- Nav Next -->
+        <button onclick="nextImage()" class="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 p-3 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all z-10">
+            <i data-lucide="chevron-right" class="w-8 h-8"></i>
+        </button>
+
+        <!-- Modal Content Box -->
+        <div class="relative max-w-5xl w-full max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row transform scale-95 transition-transform duration-300" id="lightboxContent">
+            <!-- Image Area -->
+            <div class="md:w-2/3 bg-zinc-950 flex items-center justify-center overflow-hidden min-h-[300px] md:min-h-[500px]">
+                <img id="lightboxImg" src="" alt="Artwork detail" class="max-h-[80vh] w-auto max-w-full object-contain">
+            </div>
+
+            <!-- Details Sidebar -->
+            <div class="md:w-1/3 p-6 sm:p-8 flex flex-col justify-between bg-white overflow-y-auto">
+                <div>
+                    <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+                        <span id="lightboxDate">2026.09</span>
+                        <span id="lightboxIndex" class="font-mono">1 / 10</span>
+                    </div>
+                    <h3 id="lightboxTitle" class="text-xl font-bold text-zinc-900 mb-3">Artwork Title</h3>
+                    <p id="lightboxDesc" class="text-xs text-zinc-500 leading-relaxed mb-6">
+                        作品の説明文がここに入ります。色の構成やテーマに関するコメントなどを記載できます。
+                    </p>
+
+                    <!-- Tags -->
+                    <div class="mb-6">
+                        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Tags</span>
+                        <div id="lightboxTags" class="flex flex-wrap gap-1.5">
+                            <!-- Dynamic Tags -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-6 border-t border-zinc-100 flex items-center gap-3">
+                    <a id="lightboxDownload" href="#" download target="_blank" class="flex-1 py-2.5 px-4 rounded-xl bg-zinc-900 text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>原寸画像を開く</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="configModal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2 text-zinc-900 font-bold text-lg">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                    <span>接続設定 (手動指定)</span>
+                </div>
+                <button onclick="closeConfigModal()" class="text-zinc-400 hover:text-zinc-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-zinc-500 mb-6 leading-relaxed">
+                <strong class="text-zinc-800">GitHub Pages公開時は設定不要です！</strong><br>
+                ローカルPCでの確認時や、画像フォルダの場所を変更したい場合のみ以下を入力してください。
+            </p>
+
+            <form id="configForm" onsubmit="saveConfig(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 mb-1">GitHub ユーザー名</label>
+                    <input type="text" id="cfgUser" placeholder="例: your-username" class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 mb-1">リポジトリ名</label>
+                    <input type="text" id="cfgRepo" placeholder="例: my-gallery" class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-700 mb-1">画像フォルダパス</label>
+                    <input type="text" id="cfgFolder" placeholder="例: images" value="images" class="w-full text-xs px-3.5 py-2.5 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900">
+                </div>
+
+                <div class="pt-4 flex items-center gap-3">
+                    <button type="button" onclick="useDemoData()" class="w-1/2 py-2.5 px-4 rounded-xl border border-zinc-200 text-zinc-600 text-xs font-semibold hover:bg-zinc-50 transition-all">
+                        デモ画像を表示
+                    </button>
+                    <button type="submit" class="w-1/2 py-2.5 px-4 rounded-xl bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-800 transition-all shadow">
+                        保存して再読み込み
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Sample fallback artwork data
+        const SAMPLE_ARTWORKS = [
+            {
+                id: '1',
+                title: 'Morning Breeze',
+                url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80',
+                date: '2026.08',
+                tag: 'Original',
+                desc: '光と影のグラデーションに焦点を当てたアブストラクトイラスト。'
+            },
+            {
+                id: '2',
+                title: 'Silent Reflection',
+                url: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1000&auto=format&fit=crop&q=80',
+                date: '2026.07',
+                tag: 'Landscape',
+                desc: '静かな水面に映り込む光を表現。'
+            },
+            {
+                id: '3',
+                title: 'Neon Bloom',
+                url: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=1000&auto=format&fit=crop&q=80',
+                date: '2026.06',
+                tag: 'Concept',
+                desc: '鮮やかな色彩と有機的なシェイプの構成。'
+            },
+            {
+                id: '4',
+                title: 'Ethereal Space',
+                url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1000&auto=format&fit=crop&q=80',
+                date: '2026.05',
+                tag: 'Original',
+                desc: '浮遊感のあるオブジェクトとパステルカラーの背景。'
+            },
+            {
+                id: '5',
+                title: 'Monochrome Echo',
+                url: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=1000&auto=format&fit=crop&q=80',
+                date: '2026.04',
+                tag: 'Sketch',
+                desc: '白と黒の対比を中心としたモノクロームアート。'
+            },
+            {
+                id: '6',
+                title: 'Prism Light',
+                url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=1000&auto=format&fit=crop&q=80',
+                date: '2026.03',
+                tag: 'Concept',
+                desc: 'プリズムを通して散乱する光のスペクトル。'
+            }
+        ];
+
+        let currentArtworks = [];
+        let filteredArtworks = [];
+        let activeFilter = 'all';
+        let currentLayout = 'grid';
+        let lightboxIndex = 0;
+
+        // GitHub Repository Configuration
+        let config = {
+            user: localStorage.getItem('gh_user') || '',
+            repo: localStorage.getItem('gh_repo') || '',
+            folder: localStorage.getItem('gh_folder') || 'images'
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+            lucide.createIcons();
+            
+            // Auto-detect GitHub user and repo automatically if running on GitHub Pages
+            detectGitHubEnvironment();
+
+            // Load gallery images
+            loadGalleryData();
+
+            // Keyboard shortcut listener for Lightbox navigation
+            window.addEventListener('keydown', (e) => {
+                if (document.getElementById('lightbox').classList.contains('hidden')) return;
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft') prevImage();
+                if (e.key === 'ArrowRight') nextImage();
+            });
+        });
+
+        // Automatically parse hostname to deduce GitHub user and repo
+        function detectGitHubEnvironment() {
+            const host = window.location.hostname;
+            // Example: "username.github.io"
+            if (host.includes('.github.io') && !config.user) {
+                config.user = host.split('.')[0];
+                const pathParts = window.location.pathname.split('/').filter(Boolean);
+                if (pathParts.length > 0) {
+                    config.repo = pathParts[0];
+                }
+            }
+        }
+
+        async function loadGalleryData() {
+            const statusEl = document.getElementById('syncStatus');
+            const skeletonEl = document.getElementById('loadingSkeleton');
+
+            // If user & repo configured or auto-detected, fetch from GitHub API
+            if (config.user && config.repo) {
+                statusEl.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin text-zinc-400"></i> GitHub Pages (${config.user}/${config.repo}) の \`${config.folder}/\` を自動同期中...`;
+                lucide.createIcons();
+
+                try {
+                    const apiUrl = `https://api.github.com/repos/${config.user}/${config.repo}/contents/${config.folder}`;
+                    const res = await fetch(apiUrl);
+                    
+                    if (!res.ok) throw new Error('Repository directory not found');
+                    
+                    const files = await res.json();
+                    
+                    // Filter image files
+                    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+                    const imageFiles = files.filter(file => 
+                        file.type === 'file' && imageExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
+                    );
+
+                    if (imageFiles.length > 0) {
+                        currentArtworks = imageFiles.map((file, idx) => ({
+                            id: String(idx + 1),
+                            title: formatTitle(file.name),
+                            url: file.download_url,
+                            date: 'GitHub Live Sync',
+                            tag: 'Illustration',
+                            desc: `ファイル名: ${file.name}`
+                        }));
+                        statusEl.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> GitHubから ${currentArtworks.length} 件の作品を自動読み込み完了`;
+                    } else {
+                        statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500"></i> \`${config.folder}\` フォルダに画像が見つかりません。`;
+                        currentArtworks = [];
+                    }
+                } catch (err) {
+                    console.warn('GitHub API Fetch failed or directory missing.', err);
+                    statusEl.innerHTML = `<i data-lucide="info" class="w-3.5 h-3.5 text-zinc-400"></i> ローカルテスト環境 (デモ画像を表示中)`;
+                    currentArtworks = SAMPLE_ARTWORKS;
+                }
+            } else {
+                statusEl.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i> プレビュー表示中 (GitHub Pagesへデプロイすると自動同期されます)`;
+                currentArtworks = SAMPLE_ARTWORKS;
+            }
+
+            skeletonEl.classList.add('hidden');
+            lucide.createIcons();
+            buildFilters();
+            applyFilterAndRender();
+        }
+
+        // Clean filename into readable title
+        function formatTitle(filename) {
+            const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
+            return nameWithoutExt
+                .replace(/[-_]/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function buildFilters() {
+            const tagContainer = document.getElementById('tagFilters');
+            const tags = ['all', ...new Set(currentArtworks.map(a => a.tag))];
+
+            tagContainer.innerHTML = tags.map(tag => `
+                <button data-filter="${tag}" onclick="setFilter('${tag}')" 
+                    class="filter-btn px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${tag === activeFilter ? 'bg-zinc-900 text-white shadow-sm' : 'bg-white text-zinc-600 hover:bg-zinc-100 border border-zinc-200/80'}">
+                    ${tag === 'all' ? 'All Works' : '#' + tag}
+                </button>
+            `).join('');
+        }
+
+        function setFilter(tag) {
+            activeFilter = tag;
+            buildFilters();
+            applyFilterAndRender();
+        }
+
+        function handleSort(order) {
+            if (order === 'newest') {
+                filteredArtworks.reverse();
+            } else if (order === 'random') {
+                filteredArtworks.sort(() => Math.random() - 0.5);
+            }
+            renderGallery();
+        }
+
+        function applyFilterAndRender() {
+            if (activeFilter === 'all') {
+                filteredArtworks = [...currentArtworks];
+            } else {
+                filteredArtworks = currentArtworks.filter(a => a.tag === activeFilter);
+            }
+
+            document.getElementById('itemCount').textContent = `${filteredArtworks.length} items`;
+            renderGallery();
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            const empty = document.getElementById('emptyState');
+
+            if (filteredArtworks.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+
+            grid.innerHTML = filteredArtworks.map((item, index) => `
+                <div class="reveal-item group relative bg-white rounded-3xl overflow-hidden border border-zinc-200/70 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-500 cursor-pointer"
+                     onclick="openLightbox(${index})">
+                    <!-- Image Container -->
+                    <div class="relative overflow-hidden aspect-[4/5] bg-zinc-100">
+                        <img src="${item.url}" 
+                             alt="${item.title}" 
+                             loading="lazy"
+                             onerror="this.src='https://placehold.co/800x1000/f4f4f5/a1a1aa?text=Image+Load+Error'"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out">
+                        
+                        <!-- Hover Overlay Gradient -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-zinc-950/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                            <span class="text-[10px] font-bold text-white/80 tracking-widest uppercase mb-1">#${item.tag}</span>
+                            <h3 class="text-lg font-bold text-white leading-snug">${item.title}</h3>
+                            <p class="text-xs text-white/70 mt-1 line-clamp-1">${item.desc}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            initScrollObserver();
+        }
+
+        function initScrollObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry, idx) => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => {
+                            entry.target.classList.add('is-visible');
+                        }, idx * 60);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal-item').forEach(el => observer.observe(el));
+        }
+
+        function openLightbox(index) {
+            lightboxIndex = index;
+            const item = filteredArtworks[index];
+            if (!item) return;
+
+            document.getElementById('lightboxImg').src = item.url;
+            document.getElementById('lightboxTitle').textContent = item.title;
+            document.getElementById('lightboxDate').textContent = item.date;
+            document.getElementById('lightboxDesc').textContent = item.desc;
+            document.getElementById('lightboxIndex').textContent = `${index + 1} / ${filteredArtworks.length}`;
+            document.getElementById('lightboxDownload').href = item.url;
+
+            const tagsContainer = document.getElementById('lightboxTags');
+            tagsContainer.innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-700 text-[11px] font-medium">#${item.tag}</span>`;
+
+            const lightbox = document.getElementById('lightbox');
+            const content = document.getElementById('lightboxContent');
+
+            lightbox.classList.remove('hidden');
+            setTimeout(() => {
+                lightbox.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+            
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            const content = document.getElementById('lightboxContent');
+
+            lightbox.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }, 300);
+        }
+
+        function prevImage() {
+            lightboxIndex = (lightboxIndex - 1 + filteredArtworks.length) % filteredArtworks.length;
+            openLightbox(lightboxIndex);
+        }
+
+        function nextImage() {
+            lightboxIndex = (lightboxIndex + 1) % filteredArtworks.length;
+            openLightbox(lightboxIndex);
+        }
+
+        function setLayout(mode) {
+            currentLayout = mode;
+            const grid = document.getElementById('galleryGrid');
+            const gridBtn = document.getElementById('gridBtn');
+            const masonryBtn = document.getElementById('masonryBtn');
+
+            if (mode === 'masonry') {
+                grid.className = 'columns-1 sm:columns-2 lg:columns-3 gap-8 space-y-8 transition-all duration-500';
+                masonryBtn.className = 'p-1.5 rounded-lg bg-white shadow-sm text-zinc-900 transition-all';
+                gridBtn.className = 'p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 transition-all';
+            } else {
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-500';
+                gridBtn.className = 'p-1.5 rounded-lg bg-white shadow-sm text-zinc-900 transition-all';
+                masonryBtn.className = 'p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 transition-all';
+            }
+        }
+
+        function openConfigModal() {
+            document.getElementById('cfgUser').value = config.user;
+            document.getElementById('cfgRepo').value = config.repo;
+            document.getElementById('cfgFolder').value = config.folder || 'images';
+
+            const modal = document.getElementById('configModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeConfigModal() {
+            const modal = document.getElementById('configModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function saveConfig(e) {
+            e.preventDefault();
+            config.user = document.getElementById('cfgUser').value.trim();
+            config.repo = document.getElementById('cfgRepo').value.trim();
+            config.folder = document.getElementById('cfgFolder').value.trim() || 'images';
+
+            localStorage.setItem('gh_user', config.user);
+            localStorage.setItem('gh_repo', config.repo);
+            localStorage.setItem('gh_folder', config.folder);
+
+            closeConfigModal();
+            loadGalleryData();
+        }
+
+        function useDemoData() {
+            localStorage.removeItem('gh_user');
+            localStorage.removeItem('gh_repo');
+            config.user = '';
+            config.repo = '';
+            closeConfigModal();
+            loadGalleryData();
+        }
+    </script>
+</body>
+</html>
