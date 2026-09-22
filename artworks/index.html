@@ -468,7 +468,7 @@
                                 const relPath = file.path.substring(targetPrefix.length);
                                 const filename = file.path.split('/').pop();
 
-                                const meta = metadata[relPath] || metadata[filename] || {};
+                                const meta = findMetadata(metadata, relPath, filename);
                                 const relativeUrl = `./images/${relPath}`;
 
                                 return {
@@ -534,13 +534,40 @@
             applyFilterAndRender();
         }
 
+        function findMetadata(metadata, relPath, filename) {
+            if (!metadata || typeof metadata !== 'object') return {};
+            
+            const norm = (p) => String(p || '').replace(/^(\.\/|images\/|\/)+/, '').toLowerCase();
+            const targetRel = norm(relPath);
+            const targetFile = norm(filename);
+
+            if (metadata[relPath]) return metadata[relPath];
+            if (metadata[filename]) return metadata[filename];
+
+            for (const [key, val] of Object.entries(metadata)) {
+                const normKey = norm(key);
+                if (normKey === targetRel || normKey === targetFile || normKey.endsWith('/' + targetFile)) {
+                    return val;
+                }
+            }
+            return {};
+        }
+
         function parseTags(rawTags) {
+            if (!rawTags) return ['Illustration'];
+            
             if (Array.isArray(rawTags)) {
-                return rawTags.map(t => String(t).trim()).filter(Boolean);
+                const cleaned = rawTags.map(t => String(t).trim()).filter(Boolean);
+                return cleaned.length > 0 ? cleaned : ['Illustration'];
             }
-            if (typeof rawTags === 'string' && rawTags.trim()) {
-                return rawTags.split(/[,,\s]+/).map(t => t.trim()).filter(Boolean);
+            
+            if (typeof rawTags === 'string') {
+                const str = rawTags.trim();
+                if (!str) return ['Illustration'];
+                const cleaned = str.split(/[,、|/]+/).map(t => t.trim()).filter(Boolean);
+                return cleaned.length > 0 ? cleaned : ['Illustration'];
             }
+            
             return ['Illustration'];
         }
 
